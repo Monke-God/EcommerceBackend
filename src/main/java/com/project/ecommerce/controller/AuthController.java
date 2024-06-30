@@ -1,13 +1,18 @@
 package com.project.ecommerce.controller;
 
 import com.project.ecommerce.dto.AuthenticationRequest;
+import com.project.ecommerce.dto.SignupRequest;
+import com.project.ecommerce.dto.UserDto;
 import com.project.ecommerce.entity.User;
 import com.project.ecommerce.repository.UserRepository;
+import com.project.ecommerce.services.auth.AuthService;
 import com.project.ecommerce.utils.JwtUtil;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -21,6 +26,7 @@ import java.io.IOException;
 import java.util.Optional;
 
 @RestController
+@RequiredArgsConstructor
 public class AuthController {
 
   private final AuthenticationManager authenticationManager;
@@ -35,12 +41,7 @@ public class AuthController {
 
   public static final String HEADER_STRING = "Authorization";
 
-  public AuthController(AuthenticationManager authenticationManager, UserDetailsService userDetailsService, UserRepository userRepository, JwtUtil jwtUtil) {
-    this.authenticationManager = authenticationManager;
-    this.userDetailsService = userDetailsService;
-    this.userRepository = userRepository;
-    this.jwtUtil = jwtUtil;
-  }
+  private final AuthService authService;
 
   @PostMapping("/authenticate")
   public void createAuthenticationToken(
@@ -66,5 +67,16 @@ public class AuthController {
 
       response.addHeader(HEADER_STRING, TOKEN_PREFIX + jwt);
     }
+  }
+
+  @PostMapping("/sign-up")
+  public ResponseEntity<?> signupUser(@RequestBody SignupRequest signupRequest) {
+    if (authService.hasUserWithEmail(signupRequest.getEmail())) {
+      return new ResponseEntity<>("User Already exists", HttpStatus.NOT_ACCEPTABLE);
+    }
+
+    UserDto userDto = authService.createUser(signupRequest);
+
+    return new ResponseEntity<>(userDto, HttpStatus.OK);
   }
 }
